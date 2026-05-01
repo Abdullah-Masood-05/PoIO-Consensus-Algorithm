@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{Write, Seek, SeekFrom};
+use std::io::Write;
 use std::path::Path;
 use std::error::Error;
 use rand_chacha::ChaCha8Rng;

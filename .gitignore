@@ -1,5 +1,23 @@
-/target
-c.bat
+# Compiled binaries and build output
+/target/
+**/*.rs.bk
+
+# Exclude generated plot files and binaries
+*.plot
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Exclude IDE and system-specific files
+ 
+.vscode/ 
+
+
+# Exclude documentation files other than README and Workflow
 *.pdf
-GEMINI.md
+*.plot
+*.bat
 *.md
+!README.md
+!Workflow.md

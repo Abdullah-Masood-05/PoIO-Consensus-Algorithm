@@ -1,13 +1,13 @@
-//mod core:crypto;
-//mod core::disk;
-// mod core::plot;
+//mod utils:crypto;
+//mod utils::disk;
+// mod utils::plot;
 
-mod core; // Declares the core/mod.rs file
+mod utils; // Declares the utils/mod.rs file
 
 // Bring your modules into the current scope
-use crate::core::crypto;
-use crate::core::disk;
-use crate::core::plot;
+use crate::utils::crypto;
+use crate::utils::disk;
+use crate::utils::plot;
 
 use clap::Parser;
 use std::path::PathBuf;
