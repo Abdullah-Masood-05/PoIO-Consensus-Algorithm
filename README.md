@@ -125,39 +125,65 @@ rustc --version
 
 ## Usage
 
-### Basic Initialization
+### Basic Initialization and Mining
 
-Run the default initialization with 50 MB plot:
+Run the default initialization (50 MB plot) and start mining with difficulty 4:
 
 ```bash
-cargo run --release
+cargo run --release -- --path plot.bin
 ```
 
-### Custom Plot Size
+### Custom Plot Size and Difficulty
 
-Specify a custom plot size (in bytes):
+Specify a custom plot size (in bytes) and mining difficulty:
 
 ```bash
-cargo run --release -- --plot-size 104857600 --path ./custom.plot
+cargo run --release -- --path custom.plot --plot-size 104857600 --difficulty 6
 ```
 
 ### Command-Line Arguments
 
-| Argument | Short | Default | Description |
-|----------|-------|---------|-------------|
-| `--plot-size` | `-p` | 52428800 (50 MB) | Total bytes for plot file |
-| `--path` | `-pa` | ./poio_test.plot | Output path for plot file |
+| Argument | Short | Default | Description | Constraints |
+|----------|-------|---------|-------------|-------------|
+| `--plot-size` | `-s` | 52428800 (50 MB) | Total bytes for plot file | Must be ≥ 4096 and divisible by 4096 |
+| `--path` | `-p` | ./poio_test.plot | Path to plot file | Any valid file path |
+| `--nonce` | `-n` | 1 | Starting nonce value | Any u64 value |
+| `--difficulty` | `-d` | 4 | Target leading zero bits | 0-255 bits |
+| `--max-attempts` | `-m` | 1000 | Maximum mining attempts | Must be > 0 |
 
 ### Example Commands
 
 ```bash
-# Default 50 MB plot
-cargo run --release
+# Default configuration (50 MB plot, difficulty 4)
+cargo run --release -- --path plot.bin
 
-# 100 MB plot
-cargo run --release -- --plot-size 104857600
+# 100 MB plot with higher difficulty
+cargo run --release -- --path plot.bin --plot-size 104857600 --difficulty 5
 
-# Custom path
+# Start mining from a specific nonce
+cargo run --release -- --path plot.bin --nonce 100 --difficulty 6
+
+# Increase max attempts for harder difficulties
+cargo run --release -- --path plot.bin --difficulty 8 --max-attempts 5000
+```
+
+### Mining Output Example
+
+```
+=== Proof of I/O (PoIO) Node Initializing ===
+Target Plot Size: 52428800 bytes
+Plot initialized successfully at "plot.bin"
+
+=== Starting Mining Process ===
+Total chunks available: 12800
+Difficulty target: leading 4 zero bits
+Max mining attempts: 1000
+
+✓ Block found!
+Winning nonce: 23
+Hash: 0ee6ddc0c94ae502cf308a252c7e3b0e0d06ad542d3eb7ce286bdeaf27b51d41
+Time elapsed: 23.7536ms
+```
 cargo run --release -- --path /mnt/ssd/poio.plot
 
 # Combined

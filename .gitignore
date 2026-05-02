@@ -5,6 +5,7 @@
 # Exclude generated plot files and binaries
 *.plot
 *.exe
+*.bin
 *.dll
 *.so
 *.dylib
