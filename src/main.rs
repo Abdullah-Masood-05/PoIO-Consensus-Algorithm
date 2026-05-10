@@ -90,35 +90,41 @@ fn mine_block(
     let mut nonce = starting_nonce;
     let max_attempts = 1000; // Limit attempts for demo
     
+    // Pre-allocate a buffer for chunk reading to avoid allocation inside the loop
+    let mut chunk_buffer = [0u8; 4096];
+    
     for attempt in 0..max_attempts {
-        // Compute seed from block header and nonce
-        let mut seed_input = block_header.to_vec();
-        seed_input.extend_from_slice(&nonce.to_le_bytes());
-        let seed = crypto::compute_hash(&seed_input);
+        // Compute seed from block header and nonce efficiently without vectors
+        let mut seed_state = crypto::HashState::new();
+        seed_state.update(block_header);
+        seed_state.update(&nonce.to_le_bytes());
+        let seed = seed_state.finalize();
         
         // Generate 128 random offsets using ChaCha20
         let mut rng = ChaCha8Rng::from_seed(seed);
-        let mut chunk_data = Vec::new();
+        
+        // Use streaming hash state to prevent allocating large amounts of memory to store chunk slices
+        let mut final_hash_state = crypto::HashState::new();
         
         for _ in 0..128 {
             let offset_idx = (rng.next_u64() % num_chunks) as u64;
             let offset = offset_idx * 4096;
             
-            // Read chunk from disk
-            if let Ok(chunk) = disk::read_chunk_at_offset(file, offset) {
-                chunk_data.extend_from_slice(&chunk);
+            // Read chunk from disk directly into pre-allocated buffer
+            if disk::read_chunk_at_offset(file, offset, &mut chunk_buffer).is_ok() {
+                final_hash_state.update(&chunk_buffer);
             }
         }
         
-        // Compute final hash
-        let final_hash = crypto::compute_hash(&chunk_data);
+        // Finalize the hash
+        let final_hash = final_hash_state.finalize();
         
         // Check if hash meets difficulty (leading zero bits)
         if check_difficulty(&final_hash, difficulty) {
             return Ok((final_hash, nonce));
         }
         
-        if attempt % 100 == 0 {
+        if attempt > 0 && attempt % 100 == 0 {
             println!("Attempt {}: nonce {} - hash doesn't meet difficulty", attempt, nonce);
         }
         
@@ -152,5 +158,10 @@ fn check_difficulty(hash: &[u8; 32], difficulty: u8) -> bool {
 
 /// Encode bytes as hexadecimal string
 fn hex_encode(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{:02x}", b)).collect()
+    use std::fmt::Write;
+    let mut s = String::with_capacity(bytes.len() * 2);
+    for b in bytes {
+        write!(&mut s, "{:02x}", b).unwrap();
+    }
+    s
 }

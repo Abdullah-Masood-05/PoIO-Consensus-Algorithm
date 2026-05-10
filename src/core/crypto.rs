@@ -1,8 +1,19 @@
 use blake3::Hasher;
 
-pub fn compute_hash(data: &[u8]) -> [u8; 32] {
-    let mut hasher = Hasher::new();
-    hasher.update(data);
-    let hash_array = hasher.finalize();
-    *hash_array.as_bytes()
+pub struct HashState {
+    hasher: Hasher,
+}
+
+impl HashState {
+    pub fn new() -> Self {
+        Self { hasher: Hasher::new() }
+    }
+
+    pub fn update(&mut self, data: &[u8]) {
+        self.hasher.update(data);
+    }
+
+    pub fn finalize(self) -> [u8; 32] {
+        *self.hasher.finalize().as_bytes()
+    }
 }

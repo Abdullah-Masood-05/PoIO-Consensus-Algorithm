@@ -176,6 +176,15 @@ Expected performance on consumer-grade NVMe SSD:
 | **Plot Generation** | ~500 MB/s | Depends on SSD write speed |
 | **Plot Size (Default)** | 50 MB | Configurable for testing |
 
+## Recent Architectural Optimizations
+
+As part of the algorithm refinement, several critical optimizations were introduced to ensure that the bottleneck remains strictly on the PCIe I/O interface rather than CPU memory management:
+
+- **Zero-Allocation Mining Loop:** Removed dynamic heap allocations (`Vec<u8>`) during the inner mining loop. By utilizing pre-allocated arrays (`[u8; 4096]`), heap fragmentation is eliminated, and CPU cache performance is strictly preserved.
+- **Streaming BLAKE3 Hashes:** Transitioned from loading large intermediate data buffers into memory to streaming data directly into the cryptographic `HashState`. This effectively bypasses the 512 KB memory allocation previously required per hash attempt.
+- **Buffered Plot Generation:** Upgraded the plot initialization phase from unbuffered 4 KB writes to 4 MB buffered writes via `BufWriter`. This drastically reduces syscall overhead and saturates maximum sequential NVMe write throughput.
+- **String Formatting Optimization:** Rewrote hash hex-encoding to employ pre-allocated strings with exact capacities (`String::with_capacity`), averting redundant allocations during block discovery broadcasting.
+
 ## Module Documentation
 
 ### main.rs
