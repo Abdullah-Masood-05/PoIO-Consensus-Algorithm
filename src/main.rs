@@ -279,7 +279,7 @@ fn mine_block(
     difficulty: u8,
     max_attempts: u64,
     metrics: &mut metrics::MetricsCollector,
-    block_history: &mut block_history::BlockHistory,
+    _block_history: &mut block_history::BlockHistory,
     verbose: bool,
 ) -> std::io::Result<([u8; 32], u64)> {
     let block_header = b"test_block_header"; // Simulated block header

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs::File;
-use std::io::{BufWriter, Write};
+use std::io::BufWriter;
 use std::path::Path;
 
 /// Represents a successfully mined block
@@ -47,11 +47,13 @@ impl BlockHistory {
     }
 
     /// Get all blocks
+    #[allow(dead_code)]
     pub fn get_blocks(&self) -> &[Block] {
         &self.blocks
     }
 
     /// Get block count
+    #[allow(dead_code)]
     pub fn block_count(&self) -> usize {
         self.blocks.len()
     }
@@ -71,6 +73,7 @@ impl BlockHistory {
     }
 
     /// Load blocks from JSON file
+    #[allow(dead_code)]
     pub fn load_from_file<P: AsRef<Path>>(path: P) -> std::io::Result<Self> {
         let file = File::open(path)?;
         let blocks: Vec<Block> = serde_json::from_reader(file)
