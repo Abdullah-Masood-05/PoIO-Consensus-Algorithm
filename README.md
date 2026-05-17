@@ -8,6 +8,15 @@
 
 Proof of I/O (PoIO) is an ASIC-resistant, hardware-equitable consensus algorithm that replaces traditional computational bottlenecks (CPU/GPU hashing) or static capacity bottlenecks (Proof of Space) with storage **I/O latency constraints**. By anchoring mining capability to the physical limitations of motherboard hardware interfaces (the NVMe-to-PCIe bus), PoIO prevents the centralization of mining power in industrial server farms and specialized custom computing chips.
 
+![PoIO Banner](release/poio.png)
+
+> [!NOTE]
+> **Global Installation (Windows 11)**
+> To install the production-ready `poio` CLI tool automatically and configure it globally in your system environment paths, open a standard PowerShell terminal and run:
+> ```powershell
+> curl -sSfL "https://raw.githubusercontent.com/BazilSuhail/PoIO-Consensus-Algorithm/phase-4/release/install.ps1" | powershell -Command -
+> 
+
 ---
 
 ## 2. The Core Problem We Are Addressing
