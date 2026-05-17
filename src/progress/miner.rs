@@ -25,7 +25,8 @@ use std::time::{Duration, Instant};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::core::{crypto, disk};
+use crate::core::crypto;
+use crate::verification::disk;
 
 // ── Protocol constants ────────────────────────────────────────────────────────
 

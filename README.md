@@ -37,12 +37,14 @@ proof_of_io/
 ├── RELEVANCE.md               # Social, environmental & technical justification thesis
 ├── README.md                  # This documentation file
 └── src/
-    ├── main.rs                # CLI entry point, telemetry thread orchestration & Ctrl-C handler
+    ├── main.rs                # CLI entry point, telemetry thread orchestration &  handlers
     └── core/
         ├── mod.rs             # Module definitions & structural exposure
         ├── crypto.rs          # Low-overhead Blake3 hashing & asymmetric proof verification
+        ├── mod.rs             # Module definitions & structural exposure
         ├── disk.rs            # Platform-aware cache-bypassing direct file systems
-        ├── plot.rs            # Multi-megabyte buffered plot creation with progress feedback
+        ├── plot.rs            # Multi-megabyte buffered plot creation with progress 
+        ├── mod.rs             # Module definitions & structural exposure
         ├── miner.rs           # Work-stealing Rayon parallel mining engine
         └── bench.rs           # Diagnostic random I/O storage benchmark suite
 ```
@@ -79,6 +81,80 @@ Houses the hot mining loop. Under the hood, it spins up a custom `rayon` thread 
 
 #### [src/core/bench.rs](file:///c:/Users/lorde/OneDrive/Pictures/PoIO-Consensus-Algorithm/src/core/bench.rs)
 Implements a storage latency diagnostic benchmark. It executes 1,024 random aligned 4 KiB reads under direct cache-bypassed conditions to construct a latency performance profile.
+
+
+## How to Use — Step by Step
+
+### Prerequisites
+
+```powershell
+rustc --version   # 1.75+
+cargo --version
+```
+
+### Step 1 — Build the release binary
+
+```powershell
+cargo build --release
+# Binary: target\release\poio.exe
+```
+
+### Step 2 — Generate a plot file (50 MB demo)
+
+```powershell
+cargo run --release -- plot --size 52428800 --path .\poio.plot
+```
+
+Expected output:
+```
+  Generating plot: 52428800 bytes -> "./poio.plot"
+  [00:00:01] ████████████████████████████████████████████ 50.0 MiB / 50.0 MiB
+  Plot ready in 1.234s
+```
+
+### Step 3 — Run the miner (easy difficulty for demo)
+
+```powershell
+cargo run --release -- mine --difficulty 4 --threads 4
+```
+
+Expected output:
+```
+  Plot     : "./poio.plot"  (12800 chunks)
+  Difficulty: 4 leading zero bits
+  Threads  : 4
+
+  Attempts:     47  |  43.21 h/s  |  5531 IOPS
+
+  BLOCK found!
+  Nonce      : 23
+  Hash       : 0d3f8a2b...
+  Elapsed    : 0.541s
+  Attempts   : 47
+  Throughput : 43.21 h/s  |  5531 IOPS
+```
+
+### Step 4 — Save and verify the proof
+
+```powershell
+# Mine and export proof JSON
+cargo run --release -- mine --difficulty 4 --proof-out .\proof.json
+
+# Verify without touching the plot file
+cargo run --release -- verify --proof .\proof.json --difficulty 4
+```
+
+Expected verification output:
+```
+  Proof is VALID - all 128 chunk indices match deterministic derivation
+  Hash satisfies difficulty 4
+```
+
+### Step 5 — Benchmark your NVMe drive
+
+```powershell
+cargo run --release -- bench --path .\poio.plot --size 52428800
+```
 
 ---
 

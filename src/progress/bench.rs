@@ -19,8 +19,8 @@ use colored::Colorize;
 use rand_chacha::ChaCha8Rng;
 use rand_core::{RngCore, SeedableRng};
 
-use crate::core::disk;
-use crate::core::miner::{CHUNK_SIZE, REQUIRED_READS};
+use crate::verification::disk;
+use crate::progress::miner::{CHUNK_SIZE, REQUIRED_READS};
 
 /// Number of individual 4 KiB reads to perform during the benchmark.
 const BENCH_READS: usize = 1024;

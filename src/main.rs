@@ -11,7 +11,9 @@
 //
 // ─────────────────────────────────────────────────────────────────────────────
 
-mod core;
+pub mod core;
+pub mod progress;
+pub mod verification;
 
 use std::path::PathBuf;
 use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
@@ -22,8 +24,11 @@ use clap::{Parser, Subcommand};
 use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
 
-use crate::core::{bench, crypto, miner, plot};
-use crate::core::miner::{MinerConfig, MiningStats};
+use crate::core::crypto;
+use crate::progress::{bench, miner};
+use crate::verification::plot;
+
+use crate::progress::miner::{MinerConfig, MiningStats};
 
 // ── CLI definition ────────────────────────────────────────────────────────────
 
@@ -122,6 +127,10 @@ enum Commands {
         #[arg(short = 'd', long, default_value = "4")]
         difficulty: u8,
     },
+    Help {
+        #[arg(value_name = "COMMAND")]
+        command: Option<String>,
+    },
 }
 
 // ── Banner ────────────────────────────────────────────────────────────────────
@@ -141,6 +150,83 @@ fn print_banner() {
     );
 }
 
+// ──  helper command ─────────────────────────────────────────────────────────
+
+fn print_help(cmd: Option<&str>) {
+    match cmd {
+        Some("plot") => println!(r#"
+plot — Generate a Plot File
+
+Generates a high-entropy dataset on NVMe storage.
+
+Example:
+cargo run --release -- plot --size 52428800 --path .\poio.plot
+
+Flags:
+  --size     Total bytes, multiple of 4096
+  --path     Output file path
+  --force    Overwrite existing file
+"#),
+
+        Some("mine") => println!(r#"
+mine — Start Mining Process
+
+Runs multi-threaded proof search using NVMe I/O.
+
+Example:
+cargo run --release -- mine --path .\poio.plot --threads 4 --difficulty 4 --proof-out .\proof.json
+
+Flags:
+  --path         Plot file path
+  --header       Block header string
+  --nonce        Starting nonce
+  --difficulty   Leading zero bits required
+  --threads      Worker threads
+  --max-attempts Stop after N tries
+  --proof-out    Output JSON file
+"#),
+
+        Some("verify") => println!(r#"
+verify — Validate Block Proof
+
+Checks proof without disk reads.
+
+Example:
+cargo run --release -- verify --proof .\proof.json --difficulty 4
+
+Flags:
+  --proof       Proof JSON file
+  --difficulty  Target difficulty
+"#),
+
+        Some("bench") => println!(r#"
+bench — NVMe Performance Test
+
+Measures random 4 KiB read throughput.
+
+Example:
+cargo run --release -- bench --path .\poio.plot --size 52428800
+
+Flags:
+  --path   Plot file
+  --size   Expected size
+"#),
+
+        _ => println!(r#"
+Commands:
+  plot    Generate NVMe plot file
+  mine    Start mining process
+  bench   Run storage benchmark
+  verify  Verify proof file
+  help    Show command help
+
+Usage:
+  poio help plot
+  poio help mine
+"#),
+    }
+}
+
 // ── Hex decode helper ─────────────────────────────────────────────────────────
 
 fn parse_genesis_hex(hex: &str) -> Result<[u8; 32], String> {
@@ -156,6 +242,7 @@ fn parse_genesis_hex(hex: &str) -> Result<[u8; 32], String> {
     Ok(out)
 }
 
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 fn main() {
@@ -169,6 +256,9 @@ fn main() {
         }
         Commands::Bench { path, size } => cmd_bench(path, size),
         Commands::Verify { proof, difficulty } => cmd_verify(proof, difficulty),
+        Commands::Help { command } => {
+            print_help(command.as_deref());
+        }
     }
 }
 

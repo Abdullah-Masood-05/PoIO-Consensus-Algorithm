@@ -14,7 +14,7 @@ use blake3::Hasher;
 use rand_chacha::ChaCha8Rng;
 use rand_core::{RngCore, SeedableRng};
 
-use crate::core::miner::{BlockProof, CHUNK_SIZE, REQUIRED_READS};
+use crate::progress::miner::{BlockProof, CHUNK_SIZE, REQUIRED_READS};
 
 // ── Streaming BLAKE3 wrapper ──────────────────────────────────────────────────
 
