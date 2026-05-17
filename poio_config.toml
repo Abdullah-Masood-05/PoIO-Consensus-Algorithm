@@ -1,0 +1,40 @@
+# PoIO (Proof of I/O) Configuration File
+# This file contains settings for the PoIO mining node
+
+# Plot file size in bytes
+# Default: 52428800 (50 MB)
+# Minimum: 4096 (1 chunk)
+plot_size = 52428800
+
+# Path to the plot file
+# Default: ./poio_test.plot
+plot_path = "./poio_test.plot"
+
+# Starting nonce value for mining
+# Default: 1
+starting_nonce = 1
+
+# Difficulty target (leading zero bits in hash)
+# Default: 4
+# Range: 0-255
+difficulty = 4
+
+# Maximum mining attempts per block
+# Default: 1000
+max_attempts = 1000
+
+# Enable detailed performance metrics collection
+# Default: true
+enable_metrics = true
+
+# Enable block history tracking and persistence
+# Default: true
+enable_block_history = true
+
+# File path for storing block history (JSON format)
+# Default: ./block_history.json
+block_history_file = "./block_history.json"
+
+# File path for storing mining metrics (JSON format)
+# Default: ./mining_metrics.json
+metrics_file = "./mining_metrics.json"
