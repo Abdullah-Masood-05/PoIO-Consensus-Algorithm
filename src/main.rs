@@ -15,6 +15,7 @@ pub mod core;
 pub mod progress;
 pub mod verification;
 
+use std::io::{self, Write, BufRead};
 use std::path::PathBuf;
 use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use std::thread;
@@ -25,6 +26,7 @@ use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
 
 use crate::core::crypto;
+use crate::core::system::SystemMemory;
 use crate::progress::{bench, miner};
 use crate::verification::plot;
 
@@ -61,8 +63,9 @@ enum Commands {
 
         /// Plot size in bytes.  Must be a multiple of 4096.
         /// Common values: 52428800 (50 MB), 1073741824 (1 GB).
-        #[arg(short = 's', long, default_value = "52428800")]
-        size: u64,
+        /// If omitted, auto-detects system RAM and prompts interactively.
+        #[arg(short = 's', long)]
+        size: Option<u64>,
 
         /// 32-byte genesis seed as a hex string (64 hex chars).
         /// Defaults to all-zero (testnet genesis).
@@ -264,8 +267,73 @@ fn main() {
 
 // ── Subcommand: plot ──────────────────────────────────────────────────────────
 
-fn cmd_plot(path: PathBuf, size: u64, genesis_hex: &str, force: bool) {
+fn cmd_plot(path: PathBuf, size_arg: Option<u64>, genesis_hex: &str, force: bool) {
     println!("{}", "[ Plot Generation ]".bold().bright_cyan());
+
+    // Detect system RAM
+    let sys_mem = SystemMemory::detect();
+    println!("  System RAM: {}", sys_mem.ram_display());
+
+    // Determine plot size: if --size was specified, use it directly;
+    // otherwise, detect RAM and prompt the user interactively.
+    let size: u64 = match size_arg {
+        Some(s) => s,
+        None => {
+            // Compute minimum safe size = 2× system RAM
+            let ram_bytes = sys_mem.total_ram_bytes.unwrap_or(0);
+            let safe_size = ram_bytes.saturating_mul(2);
+
+            if ram_bytes == 0 {
+                eprintln!(
+                    "  {} Could not detect system RAM. Use --size to specify plot size manually.",
+                    "WARN".bright_yellow()
+                );
+                return;
+            }
+
+            let safe_gib = safe_size as f64 / (1024.0 * 1024.0 * 1024.0);
+            println!(
+                "  {}: No --size specified. Detected system RAM: {}.",
+                "INFO".bright_cyan(),
+                sys_mem.ram_display()
+            );
+            println!(
+                "  Minimum safe plot size (2× RAM) = {:.1} GiB",
+                safe_gib
+            );
+            println!();
+            println!(
+                "  Type '{}' to create the full {:.1} GiB plot (ramdisk-safe)",
+                "proceed".bright_green(),
+                safe_gib
+            );
+            println!(
+                "  Type '{}' to create a 50 MB demo plot (for testing only)",
+                "safe".bright_yellow()
+            );
+            print!("  > ");
+            io::stdout().flush().unwrap();
+
+            let stdin = io::stdin();
+            let mut input = String::new();
+            stdin.lock().read_line(&mut input).unwrap();
+            let choice = input.trim().to_lowercase();
+
+            match choice.as_str() {
+                "proceed" => {
+                    // Align to 4096 bytes
+                    (safe_size / 4096) * 4096
+                }
+                "safe" => {
+                    52_428_800 // 50 MiB demo plot
+                }
+                _ => {
+                    println!("  Unrecognized choice '{}'. Aborting.", choice);
+                    return;
+                }
+            }
+        }
+    };
 
     // Validate size alignment
     if size % 4096 != 0 {
