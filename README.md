@@ -219,14 +219,60 @@ cargo build --release
 ```
 
 ### 1. `plot` — Generate a Plot File
-Generates a highly-entropy pseudo-random dataset on your storage media.
+Generates a highly-entropy pseudo-random dataset on your storage media with automatic system safety checks.
 ```powershell
-# Generate a standard 50 MB test plot
-cargo run --release -- plot --size 52428800 --path .\poio.plot
+# Generate a plot with automatic RAM detection and interactive sizing
+cargo run --release -- plot --path .\poio.plot --force
 ```
-- `--size`: Total bytes (must be a multiple of 4096).
-- `--path`: Destination location.
-- `--force`: Set to force overwrite an existing valid plot file.
+- `--path`: Destination location (required).
+- `--size`: (Optional) Total bytes in bytes (must be a multiple of 4096). If omitted, auto-detects system RAM.
+- `--force`: Overwrite an existing plot file and trigger interactive mode for sizing selection.
+
+**Interactive Mode Behavior** (when `--force` is used without `--size`):
+
+When you run the command with `--force`, the system automatically detects your total physical RAM and calculates the minimum safe plot size (2× RAM to prevent RAM-disk attacks). You will be prompted to choose:
+
+```
+Type 'proceed' to create the full {size} GiB plot (ramdisk-safe)
+Type 'safe' to create a 50 MB demo plot (for testing only)
+```
+
+**Example with full plot generation:**
+```powershell
+cargo run --release -- plot --path .\poio.plot --force
+```
+
+Output:
+```
+[ Plot Generation ]
+  System RAM: 63.2 GiB
+  INFO: No --size specified. Detected system RAM: 63.2 GiB.
+  Minimum safe plot size (2× RAM) = 126.4 GiB
+
+  Type 'proceed' to create the full 126.4 GiB plot (ramdisk-safe)
+  Type 'safe' to create a 50 MB demo plot (for testing only)
+  > proceed
+  Path     : ".\poio.plot"
+  Size     : 135738957824 bytes  (126.4 GiB)
+  Genesis  : 0000000000000000
+  Chunks   : 33139394
+
+  Generating plot: 135738957824 bytes → ".\poio.plot"
+  [00:00:01] ▊                                             2.26 GiB/126.42 GiB (1.93 GiB/s) ETA 64s
+```
+
+**Example with demo plot:**
+```
+  > safe
+  Path     : ".\poio.plot"
+  Size     : 52428800 bytes  (50.0 MiB)
+  Genesis  : 0000000000000000
+  Chunks   : 12800
+
+  Generating plot: 52428800 bytes → ".\poio.plot"
+  [00:00:00] █████████████████████████████████████████████ 50.00 MiB/50.00 MiB (1.58 GiB/s) ETA 0s
+  ✓ Plot ready in 0.032s
+```
 
 ### 2. `mine` — Start the Mining Process
 Begins seeking block proofs using the multi-threaded search engine.
