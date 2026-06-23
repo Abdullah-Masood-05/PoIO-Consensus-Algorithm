@@ -16,7 +16,6 @@
 //
 // ─────────────────────────────────────────────────────────────────────────────
 
-use std::fs::File;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
@@ -139,7 +138,7 @@ pub fn run_miner(
 
         (0..thread_count).into_par_iter().for_each(|thread_id| {
             // Each thread opens its own file handle — no mutex on seek.
-            let mut file = match File::open(&plot_path) {
+            let mut file = match disk::open_direct(&plot_path) {
                 Ok(f)  => f,
                 Err(e) => {
                     eprintln!("[thread {}] cannot open plot: {}", thread_id, e);
@@ -174,16 +173,14 @@ pub fn run_miner(
                 // 2. Generate the 128 chunk indices deterministically
                 let chunk_indices = crypto::generate_chunk_indices(&seed, num_chunks);
 
-                // 3. Stream all 128 chunks through BLAKE3 without allocation
+                // 3. Stream all 128 chunks through BLAKE3 — zero allocation
                 let mut final_state = crypto::HashState::new();
-                let mut all_chunks: Vec<Vec<u8>> = Vec::with_capacity(REQUIRED_READS);
                 let mut io_ok = true;
 
                 for &idx in &chunk_indices {
                     let byte_offset = idx * CHUNK_SIZE as u64;
                     if disk::read_chunk_at_offset(&mut file, byte_offset, &mut chunk_buffer).is_ok() {
                         final_state.update(&chunk_buffer);
-                        all_chunks.push(chunk_buffer.to_vec());
                     } else {
                         io_ok = false;
                         break;
@@ -206,12 +203,23 @@ pub fn run_miner(
                 // 6. Difficulty check
                 if crypto::meets_difficulty(&final_hash, difficulty) {
                     if !found.swap(true, Ordering::SeqCst) {
+                        // Winner found — re-read the 128 chunks to populate the
+                        // proof.  This second pass only happens once per block so
+                        // the cost is negligible.
+                        let mut proof_chunks: Vec<Vec<u8>> = Vec::with_capacity(REQUIRED_READS);
+                        for &idx in &chunk_indices {
+                            let byte_offset = idx * CHUNK_SIZE as u64;
+                            let mut buf = vec![0u8; CHUNK_SIZE];
+                            if disk::read_chunk_at_offset(&mut file, byte_offset, &mut buf).is_ok() {
+                                proof_chunks.push(buf);
+                            }
+                        }
                         let proof = BlockProof {
                             block_header: block_header.clone(),
                             nonce: local_nonce,
                             num_chunks,
                             chunk_indices: chunk_indices.to_vec(),
-                            chunks: all_chunks,
+                            chunks: proof_chunks,
                             final_hash,
                         };
                         let _ = tx.send(proof);

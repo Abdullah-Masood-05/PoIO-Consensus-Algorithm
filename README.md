@@ -53,8 +53,9 @@ proof_of_io/
         ├── mod.rs             # Module definitions & structural exposure
         ├── disk.rs            # Platform-aware cache-bypassing direct file systems
         ├── plot.rs            # Multi-megabyte buffered plot creation with progress 
+        ├── system.rs          # System RAM & free‑disk detection with safety warnings
         ├── mod.rs             # Module definitions & structural exposure
-        ├── miner.rs           # Work-stealing Rayon parallel mining engine
+        ├── miner.rs           # Work‑stealing Rayon parallel mining engine (telemetry, IOPS)
         └── bench.rs           # Diagnostic random I/O storage benchmark suite
 ```
 
@@ -79,7 +80,8 @@ Manages low-level, hardware-direct file access. It contains platform-aware kerne
 - **macOS**: Applies `fcntl` with `F_NOCACHE` directly to raw file descriptors.
 This ensures every single read translates to a physical PCIe interface request instead of an instant RAM retrieval.
 
-#### [src/core/plot.rs](file:///c:/Users/lorde/OneDrive/Pictures/PoIO-Consensus-Algorithm/src/core/plot.rs)
+#### [src/core/system.rs](file:///c:/Users/lorde/OneDrive/Pictures/PoIO-Consensus-Algorithm/src/core/system.rs)
+System module provides platform‑aware detection of total physical RAM and free disk space. The CLI uses this to emit warnings when the generated plot could fit entirely in RAM (potential ram‑disk attack) and to advise on available storage before plotting.
 Performs plot generation. It streams high-entropy bytes from a genesis seed using `ChaCha8Rng` into a `BufWriter` pre-allocated to 4 MiB chunks to maximize drive write speeds. It renders an active progress bar and checks existing plot sizes to avoid redundant rewrites.
 
 #### [src/core/miner.rs](file:///c:/Users/lorde/OneDrive/Pictures/PoIO-Consensus-Algorithm/src/core/miner.rs)
@@ -112,6 +114,7 @@ cargo build --release
 
 ```powershell
 cargo run --release -- plot --size 52428800 --path .\poio.plot
+# Add --force to overwrite an existing plot and trigger system RAM \& disk checks
 ```
 
 Expected output:
@@ -143,6 +146,8 @@ Expected output:
   Throughput : 43.21 h/s  |  5531 IOPS
 ```
 
+> **Note:** The `plot` subcommand now performs runtime checks of total physical RAM and available disk space via the `core/system.rs` module. It warns if the requested plot size could fit entirely in RAM (potential ram‑disk attack) and aborts with an informative error when free storage is insufficient.
+
 ### Step 4 — Save and verify the proof
 
 ```powershell
@@ -167,7 +172,7 @@ cargo run --release -- bench --path .\poio.plot --size 52428800
 
 ---
 
-## 4. How the Algorithm Works
+### 5. How the Algorithm Works
 
 ```
                         [ Block Header ∥ Nonce ]
@@ -214,14 +219,60 @@ cargo build --release
 ```
 
 ### 1. `plot` — Generate a Plot File
-Generates a highly-entropy pseudo-random dataset on your storage media.
+Generates a highly-entropy pseudo-random dataset on your storage media with automatic system safety checks.
 ```powershell
-# Generate a standard 50 MB test plot
-cargo run --release -- plot --size 52428800 --path .\poio.plot
+# Generate a plot with automatic RAM detection and interactive sizing
+cargo run --release -- plot --path .\poio.plot --force
 ```
-- `--size`: Total bytes (must be a multiple of 4096).
-- `--path`: Destination location.
-- `--force`: Set to force overwrite an existing valid plot file.
+- `--path`: Destination location (required).
+- `--size`: (Optional) Total bytes in bytes (must be a multiple of 4096). If omitted, auto-detects system RAM.
+- `--force`: Overwrite an existing plot file and trigger interactive mode for sizing selection.
+
+**Interactive Mode Behavior** (when `--force` is used without `--size`):
+
+When you run the command with `--force`, the system automatically detects your total physical RAM and calculates the minimum safe plot size (2× RAM to prevent RAM-disk attacks). You will be prompted to choose:
+
+```
+Type 'proceed' to create the full {size} GiB plot (ramdisk-safe)
+Type 'safe' to create a 50 MB demo plot (for testing only)
+```
+
+**Example with full plot generation:**
+```powershell
+cargo run --release -- plot --path .\poio.plot --force
+```
+
+Output:
+```
+[ Plot Generation ]
+  System RAM: 63.2 GiB
+  INFO: No --size specified. Detected system RAM: 63.2 GiB.
+  Minimum safe plot size (2× RAM) = 126.4 GiB
+
+  Type 'proceed' to create the full 126.4 GiB plot (ramdisk-safe)
+  Type 'safe' to create a 50 MB demo plot (for testing only)
+  > proceed
+  Path     : ".\poio.plot"
+  Size     : 135738957824 bytes  (126.4 GiB)
+  Genesis  : 0000000000000000
+  Chunks   : 33139394
+
+  Generating plot: 135738957824 bytes → ".\poio.plot"
+  [00:00:01] ▊                                             2.26 GiB/126.42 GiB (1.93 GiB/s) ETA 64s
+```
+
+**Example with demo plot:**
+```
+  > safe
+  Path     : ".\poio.plot"
+  Size     : 52428800 bytes  (50.0 MiB)
+  Genesis  : 0000000000000000
+  Chunks   : 12800
+
+  Generating plot: 52428800 bytes → ".\poio.plot"
+  [00:00:00] █████████████████████████████████████████████ 50.00 MiB/50.00 MiB (1.58 GiB/s) ETA 0s
+  ✓ Plot ready in 0.032s
+```
 
 ### 2. `mine` — Start the Mining Process
 Begins seeking block proofs using the multi-threaded search engine.
@@ -263,6 +314,14 @@ Expected average performance metrics based on physical storage configurations:
 ---
 
 ## 7. Security and Attack Mitigations
+
+### System‑Level Safety Checks
+The new `core/system.rs` module adds runtime detection of your machine's RAM size and the free space on the volume where the plot resides. When running `plot` the CLI will now:
+- Warn if the target plot size is **less than twice** the detected RAM, indicating it could be fully cached in a ram‑disk, which would nullify PoIO’s I/O bottleneck.
+- Abort with an informative error if insufficient free disk space is detected.
+These checks help prevent inadvertent security regressions and guide operators toward appropriate plot sizes.
+
+---
 
 - **RAM-Disk Mitigations**: If a miner attempts to cache plots in volatile system memory (DRAM) to gain nanosecond latencies, the economic costs become prohibitive. In production networks, dataset sizes scale to terabytes. Purchasing terabytes of high-speed DDR5 memory is orders of magnitude more expensive than using standard commodity SSDs, destroying any economic motivation to cheat.
 - **On-the-fly Generation (Time-Memory Tradeoff)**: Mining offsets are derived from `Blake3(Header ∥ Nonce)`. Because the challenge header updates dynamically with every single network block, a miner cannot predict which 4 KiB chunks they will need. They are forced to actively store the entire file.
