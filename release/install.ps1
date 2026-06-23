@@ -2,9 +2,9 @@
 $ErrorActionPreference = "Stop"
 
 # 1. Target configurations
-$repoOwner   = "BazilSuhail"
+$repoOwner   = "Abdullah-Masood-05"
 $repoName    = "PoIO-Consensus-Algorithm"
-$tag         = "v0.2.0"
+$tag         = "v0.3.0"
 $exeName     = "poio.exe"
 $installDir  = "$env:USERPROFILE\.poio"
 
@@ -17,7 +17,7 @@ if (-not (Test-Path -Path $installDir)) {
 }
 
 # 4. Stream and write the executable binary locally
-Write-Host "Downloading poio.exe v0.2.0 to $installDir..." -ForegroundColor Cyan
+Write-Host "Downloading poio.exe v0.3.0 to $installDir..." -ForegroundColor Cyan
 Invoke-WebRequest -Uri $downloadUrl -OutFile "$installDir\$exeName" -UseBasicParsing
 
 # 5. Integrate target directory with the local User PATH

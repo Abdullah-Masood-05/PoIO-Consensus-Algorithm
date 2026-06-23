@@ -37,7 +37,7 @@ use crate::progress::miner::{MinerConfig, MiningStats};
 #[derive(Parser)]
 #[command(
     name    = "poio",
-    version = "0.2.0",
+    version = "0.3.0",
     author  = "Bazil Suhail, Abdullah Masood, Ebad Junaid",
     about   = "Proof of I/O (PoIO) — PCIe-bound consensus prototype",
     long_about = "\
@@ -149,7 +149,7 @@ fn print_banner() {
     println!(
         "  {} v{}\n",
         "Proof of I/O  |  PCIe-Bound Consensus Prototype".bright_white().bold(),
-        "0.2.0".dimmed()
+        "0.3.0".dimmed()
     );
 }
 

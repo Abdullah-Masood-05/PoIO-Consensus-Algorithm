@@ -2,6 +2,9 @@
 /target/
 **/*.rs.bk
 
+# Installer build scripts & output (kept local, not tracked)
+*.iss
+
 # Exclude generated plot files and binaries
 *.plot
 *.exe

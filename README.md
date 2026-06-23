@@ -2,7 +2,7 @@
 
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-blue.svg)](https://www.rust-lang.org/)
 [![License: Academic](https://img.shields.io/badge/License-Academic_Research-purple.svg)]()
-[![Version](https://img.shields.io/badge/version-0.2.0-green.svg)]()
+[![Version](https://img.shields.io/badge/version-0.3.0-green.svg)]()
 
 ## 1. Overview
 
@@ -12,10 +12,14 @@ Proof of I/O (PoIO) is an ASIC-resistant, hardware-equitable consensus algorithm
 
 > [!NOTE]
 > **Global Installation (Windows 11)**
-> To install the production-ready `poio` CLI tool automatically and configure it globally in your system environment paths, open a standard PowerShell terminal and run:
+>
+> **Option A — Installer (recommended).** Download **`PoIO-Setup-0.3.0.exe`** from the [latest release](https://github.com/Abdullah-Masood-05/PoIO-Consensus-Algorithm/releases/latest) and run it. The wizard installs `poio.exe` per‑user (no administrator prompt) and registers it on your `PATH`. Restart your terminal, then run `poio --help`.
+>
+> **Option B — PowerShell one‑liner.** To download and register the prebuilt binary automatically, open a standard PowerShell terminal and run:
 > ```powershell
-> curl -sSfL "https://raw.githubusercontent.com/BazilSuhail/PoIO-Consensus-Algorithm/phase-4/release/install.ps1" | powershell -Command -
-> 
+> irm "https://raw.githubusercontent.com/Abdullah-Masood-05/PoIO-Consensus-Algorithm/main/release/install.ps1" | iex
+> ```
+> Restart the terminal afterwards so the updated `PATH` takes effect.
 
 ---
 
@@ -32,6 +36,8 @@ Traditional consensus mechanisms suffer from systemic hardware centralization:
 ### The PoIO Solution
 
 By enforcing **128 randomized 4 KB sector reads** per single hash attempt, the bottleneck is shifted to the motherboard's physical hardware lanes. Because consumer NVMe drives operate at nearly the same physical random read cell latency (~90-110 microseconds) as top-tier datacentre enterprise SSDs (~60-80 microseconds), the playground is physically democratized. Industrial scaling yields only marginal, sub-linear advantages.
+
+**Enforcing the bottleneck at runtime.** The entire model collapses if a miner can stage the plot in DRAM, so the reference implementation does not take plot sizing on trust. Before generating a plot it reads the host's hardware profile — total physical RAM and free disk space — directly from the operating system (`core/system.rs`: `GlobalMemoryStatusEx` on Windows, `/proc/meminfo` on Linux, `sysctl` on macOS). It refuses to silently create a plot small enough to live in a RAM‑disk, holding the line at a minimum of **2× detected RAM**, and aborts when the target volume lacks the free space to hold the file. This turns hardware‑equity from a paper property into an enforced precondition (detailed in [§7 — System‑Level Safety Checks](#7-security-and-attack-mitigations)).
 
 ---
 

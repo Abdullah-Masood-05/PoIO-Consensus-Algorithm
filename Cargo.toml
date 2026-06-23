@@ -1,6 +1,6 @@
 [package]
 name = "poio"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Bazil Suhail <Bscs22072>", "Abdullah Masood <Bscs22054>", "Ebad Junaid <Bscs22046>"]
 description = "Proof of I/O (PoIO) — An ASIC-resistant consensus algorithm bounded by PCIe storage I/O latency"
